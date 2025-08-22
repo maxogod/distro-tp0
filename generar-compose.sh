@@ -47,12 +47,12 @@ insert_client_services() {
 }
 
 insert_networks() {
-    content+="\n$(indent_string 1 "networks:")\n"
-    content+="$(indent_string 2 "testing_net:")\n"
-    content+="$(indent_string 3 "ipam:")\n"
-    content+="$(indent_string 4 "driver: default")\n"
-    content+="$(indent_string 4 "config:")\n"
-    content+="$(indent_string 5 "- subnet: 172.25.125.0/24")\n"
+    content+="\nnetworks:\n"
+    content+="$(indent_string 1 "testing_net:")\n"
+    content+="$(indent_string 2 "ipam:")\n"
+    content+="$(indent_string 3 "driver: default")\n"
+    content+="$(indent_string 3 "config:")\n"
+    content+="$(indent_string 4 "- subnet: 172.25.125.0/24")\n"
 }
 
 # Create content
