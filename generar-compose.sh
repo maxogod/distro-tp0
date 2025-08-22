@@ -7,52 +7,61 @@ fi
 
 output_file=$1
 num_clients=$2
-content=""
+indent="  "
 
-# Insert services
+indent_string() {
+    local level=$1
+    local string=$2
+    local res=""
+    for ((i=0; i<level; i++)); do
+        res+=$indent
+    done
+    res+=$string
+    echo -e "$res"
+}
+
 insert_server_service() {
-    content+="\n\tserver:\n"
-    content+="\t\tcontainer_name: server\n"
-    content+="\t\timage: server_image\n"
-    content+="\t\tentrypoint: python3 /main.py\n"
-    content+="\t\tenvironment:\n"
-    content+="\t\t\t- PYTHONUNBUFFERED=1\n"
-    content+="\t\tnetworks:\n"
-    content+="\t\t\t- testing_net\n"
+    content+="\n$(indent_string 1 "server:")\n"
+    content+="$(indent_string 2 "container_name: server")\n"
+    content+="$(indent_string 2 "image: server_image")\n"
+    content+="$(indent_string 2 "entrypoint: python3 /main.py")\n"
+    content+="$(indent_string 2 "environment:")\n"
+    content+="$(indent_string 3 "- PYTHONUNBUFFERED=1")\n"
+    content+="$(indent_string 2 "networks:")\n"
+    content+="$(indent_string 3 "- testing_net")\n"
 }
 
 insert_client_services() {
     for ((i=1; i<=num_clients; i++)); do
-        content+="\n\tclient$i:\n"
-        content+="\t\tcontainer_name: client$i\n"
-        content+="\t\timage: client:latest\n"
-        content+="\t\tentrypoint: /client\n"
-        content+="\t\tenvironment:\n"
-        content+="\t\t\t- CLI_ID=$i\n"
-        content+="\t\tnetworks:\n"
-        content+="\t\t\t- testing_net\n"
-        content+="\t\tdepends_on:\n"
-        content+="\t\t\t- server\n"
+        content+="\n$(indent_string 1 "client$i:")\n"
+        content+="$(indent_string 2 "container_name: client$i")\n"
+        content+="$(indent_string 2 "image: client:latest")\n"
+        content+="$(indent_string 2 "entrypoint: /client")\n"
+        content+="$(indent_string 2 "environment:")\n"
+        content+="$(indent_string 3 "- CLI_ID=$i")\n"
+        content+="$(indent_string 2 "networks:")\n"
+        content+="$(indent_string 3 "- testing_net")\n"
+        content+="$(indent_string 2 "depends_on:")\n"
+        content+="$(indent_string 3 "- server")\n"
     done
 }
 
-# Insert networks
 insert_networks() {
-    content+="\nnetworks:\n"
-    content+="\ttesting_net:\n"
-    content+="\t\tipam:\n"
-    content+="\t\t\tdriver: default\n"
-    content+="\t\t\tconfig:\n"
-    content+="\t\t\t\t- subnet: 172.25.125.0/24"
+    content+="\n$(indent_string 1 "networks:")\n"
+    content+="$(indent_string 2 "testing_net:")\n"
+    content+="$(indent_string 3 "ipam:")\n"
+    content+="$(indent_string 4 "driver: default")\n"
+    content+="$(indent_string 4 "config:")\n"
+    content+="$(indent_string 5 "- subnet: 172.25.125.0/24")\n"
 }
 
 # Create content
-content+="name: tp0"
+content="name: tp0"
 content+="\nservices:"
 insert_server_service
 insert_client_services
 insert_networks
 
 # Write content to output file
-echo -e $content > $output_file
+echo -e "$content" > "$output_file"
 echo "Docker Compose file generated: $output_file"
