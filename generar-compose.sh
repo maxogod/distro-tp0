@@ -27,6 +27,8 @@ insert_server_service() {
     content+="$(indent_string 2 "entrypoint: python3 /main.py")\n"
     content+="$(indent_string 2 "environment:")\n"
     content+="$(indent_string 3 "- PYTHONUNBUFFERED=1")\n"
+    content+="$(indent_string 2 "volumes:")\n"
+    content+="$(indent_string 3 "- ./server/config.ini:/config.ini")\n"
     content+="$(indent_string 2 "networks:")\n"
     content+="$(indent_string 3 "- testing_net")\n"
 }
@@ -39,6 +41,8 @@ insert_client_services() {
         content+="$(indent_string 2 "entrypoint: /client")\n"
         content+="$(indent_string 2 "environment:")\n"
         content+="$(indent_string 3 "- CLI_ID=$i")\n"
+        content+="$(indent_string 2 "volumes:")\n"
+        content+="$(indent_string 3 "- ./client/config.yaml:/config.yaml")\n"
         content+="$(indent_string 2 "networks:")\n"
         content+="$(indent_string 3 "- testing_net")\n"
         content+="$(indent_string 2 "depends_on:")\n"
