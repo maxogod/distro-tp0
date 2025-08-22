@@ -23,7 +23,7 @@ indent_string() {
 insert_server_service() {
     content+="\n$(indent_string 1 "server:")\n"
     content+="$(indent_string 2 "container_name: server")\n"
-    content+="$(indent_string 2 "image: server_image")\n"
+    content+="$(indent_string 2 "image: server:latest")\n"
     content+="$(indent_string 2 "entrypoint: python3 /main.py")\n"
     content+="$(indent_string 2 "environment:")\n"
     content+="$(indent_string 3 "- PYTHONUNBUFFERED=1")\n"
