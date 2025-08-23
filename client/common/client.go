@@ -1,11 +1,10 @@
 package common
 
 import (
-	"bufio"
-	"fmt"
-	"net"
 	"time"
 
+	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/bets/models"
+	betProtocol "github.com/7574-sistemas-distribuidos/docker-compose-init/client/bets/protocol"
 	"github.com/op/go-logging"
 )
 
@@ -22,25 +21,27 @@ type ClientConfig struct {
 // Client Entity that encapsulates how
 type Client struct {
 	config      ClientConfig
-	conn        net.Conn
+	bet         models.Bet
+	protocol    betProtocol.BetProtocol
 	shutdown_ch chan bool
 }
 
 // NewClient Initializes a new client receiving the configuration
 // as a parameter
-func NewClient(config ClientConfig, shutdown_ch chan bool) *Client {
+func NewClient(config ClientConfig, clientBet models.Bet, shutdown_ch chan bool) *Client {
 	client := &Client{
 		config:      config,
 		shutdown_ch: shutdown_ch,
+		bet:         clientBet,
 	}
 	return client
 }
 
-// CreateClientSocket Initializes client socket. In case of
+// createClientProtocol Initializes client protocol. In case of
 // failure, error is printed in stdout/stderr and exit 1
 // is returned
-func (c *Client) createClientSocket() error {
-	conn, err := net.Dial("tcp", c.config.ServerAddress)
+func (c *Client) createClientProtocol() error {
+	protocol, err := betProtocol.NewBetProtocol(c.config.ServerAddress)
 	if err != nil {
 		log.Criticalf(
 			"action: connect | result: fail | client_id: %v | error: %v",
@@ -48,50 +49,31 @@ func (c *Client) createClientSocket() error {
 			err,
 		)
 	}
-	c.conn = conn
+
+	go func() {
+		if <-c.shutdown_ch {
+			_ = protocol.Shutdown()
+		}
+	}()
+
+	c.protocol = protocol
 	return nil
 }
 
 // StartClientLoop Send messages to the client until some time threshold is met
 func (c *Client) StartClientLoop() {
-	// There is an autoincremental msgID to identify every message sent
-	// Messages if the message amount threshold has not been surpassed
-	for msgID := 1; msgID <= c.config.LoopAmount; msgID++ {
-		select {
-		case <-c.shutdown_ch:
-			return
-		default:
-			// No shutdown
-		}
-		// Create the connection the server in every loop iteration. Send an
-		c.createClientSocket()
-
-		// TODO: Modify the send to avoid short-write
-		fmt.Fprintf(
-			c.conn,
-			"[CLIENT %v] Message N°%v\n",
-			c.config.ID,
-			msgID,
-		)
-		msg, err := bufio.NewReader(c.conn).ReadString('\n')
-		c.conn.Close()
-
-		if err != nil {
-			log.Errorf("action: receive_message | result: fail | client_id: %v | error: %v",
-				c.config.ID,
-				err,
-			)
-			return
-		}
-
-		log.Infof("action: receive_message | result: success | client_id: %v | msg: %v",
-			c.config.ID,
-			msg,
-		)
-
-		// Wait a time between sending one message and the next one
-		time.Sleep(c.config.LoopPeriod)
-
+	if err := c.createClientProtocol(); err != nil {
+		return
 	}
-	log.Infof("action: loop_finished | result: success | client_id: %v", c.config.ID)
+	defer c.protocol.Shutdown()
+
+	c.protocol.SendBet(c.bet)
+
+	confirmed, err := c.protocol.ReceiveConfirmation()
+	if err == nil && confirmed {
+		log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v",
+			c.bet.ID,
+			c.bet.Number,
+		)
+	}
 }
