@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"os"
+	"os/signal"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/op/go-logging"
@@ -91,6 +93,16 @@ func PrintConfig(v *viper.Viper) {
 }
 
 func main() {
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGTERM)
+
+	shutdown_ch := make(chan bool, 1)
+
+	go func() {
+		_ = <-sigs          // Blocking wait for SIGTERM
+		shutdown_ch <- true // Notify other goroutines
+	}()
+
 	v, err := InitConfig()
 	if err != nil {
 		log.Criticalf("%s", err)
@@ -110,6 +122,6 @@ func main() {
 		LoopPeriod:    v.GetDuration("loop.period"),
 	}
 
-	client := common.NewClient(clientConfig)
+	client := common.NewClient(clientConfig, shutdown_ch)
 	client.StartClientLoop()
 }
