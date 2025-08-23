@@ -4,6 +4,8 @@ from configparser import ConfigParser
 from common.server import Server
 import logging
 import os
+import signal
+import sys
 
 
 def initialize_config():
@@ -23,13 +25,18 @@ def initialize_config():
 
     config_params = {}
     try:
-        config_params["port"] = int(os.getenv('SERVER_PORT', config["DEFAULT"]["SERVER_PORT"]))
-        config_params["listen_backlog"] = int(os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SERVER_LISTEN_BACKLOG"]))
-        config_params["logging_level"] = os.getenv('LOGGING_LEVEL', config["DEFAULT"]["LOGGING_LEVEL"])
+        config_params["port"] = int(
+            os.getenv('SERVER_PORT', config["DEFAULT"]["SERVER_PORT"]))
+        config_params["listen_backlog"] = int(
+            os.getenv('SERVER_LISTEN_BACKLOG', config["DEFAULT"]["SERVER_LISTEN_BACKLOG"]))
+        config_params["logging_level"] = os.getenv(
+            'LOGGING_LEVEL', config["DEFAULT"]["LOGGING_LEVEL"])
     except KeyError as e:
-        raise KeyError("Key was not found. Error: {} .Aborting server".format(e))
+        raise KeyError(
+            "Key was not found. Error: {} .Aborting server".format(e))
     except ValueError as e:
-        raise ValueError("Key could not be parsed. Error: {}. Aborting server".format(e))
+        raise ValueError(
+            "Key could not be parsed. Error: {}. Aborting server".format(e))
 
     return config_params
 
@@ -49,7 +56,15 @@ def main():
 
     # Initialize server and start server loop
     server = Server(port, listen_backlog)
+
+    # SIGTERM handler setup
+    def sigterm_handler(_signo, _stack_frame):
+        server.shutdown()
+        sys.exit(0)
+    signal.signal(signal.SIGTERM, sigterm_handler)
+
     server.run()
+
 
 def initialize_log(logging_level):
     """
