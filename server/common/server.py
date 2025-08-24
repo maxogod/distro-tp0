@@ -18,13 +18,19 @@ class Server:
         finishes, servers starts to accept new connections again
         """
 
-        # TODO: Modify this program to handle signal to graceful shutdown
-        # the server
-        while True:
-            client_sock = self.__accept_new_connection()
+        self._running = True
+        while self._running:
+            client_sock = None
+            try:
+                client_sock = self.__accept_new_connection()
+            except OSError as e:
+                logging.error(f"action: accept_connections | result: fail | error: {e}")
+                continue
+
             self.__handle_client_connection(client_sock)
 
     def shutdown(self):
+        self._running = False
         self._server_socket.close()
 
     def __handle_client_connection(self, client_sock):
