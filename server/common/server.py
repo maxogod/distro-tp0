@@ -1,7 +1,8 @@
 import socket
 import logging
 
-from server.common import bet_protocol, utils
+import common.bet_protocol as bet_protocol
+import common.utils as utils
 
 
 class Server:
@@ -27,7 +28,7 @@ class Server:
                 bet = protocol.receive_bet()
                 utils.store_bets([bet])
                 logging.info(
-                    f"action: apuesta_almacenada | result: success | dni: ${bet.document} | numero: ${bet.number}"
+                    f"action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}"
                 )
                 protocol.send_bet_confirmation()
             except (OSError, EOFError, RuntimeError) as e:

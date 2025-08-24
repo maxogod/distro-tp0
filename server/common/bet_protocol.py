@@ -1,6 +1,6 @@
 import socket
 
-from server.common import utils
+import common.utils as utils
 
 BET_CONFIRMATION_CODE = 0x01
 

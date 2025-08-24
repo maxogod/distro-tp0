@@ -71,7 +71,7 @@ func (c *Client) StartClientLoop() {
 
 	confirmed, err := c.protocol.ReceiveConfirmation()
 	if err == nil && confirmed {
-		log.Infof("action: apuesta_enviada | result: success | dni: %v | numero: %v",
+		log.Infof("action: apuesta_enviada | result: success | dni: %d | numero: %d",
 			c.bet.ID,
 			c.bet.Number,
 		)
