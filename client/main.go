@@ -41,11 +41,11 @@ func InitConfig() (*viper.Viper, error) {
 	v.BindEnv("loop", "amount")
 	v.BindEnv("log", "level")
 	// Client info
-	v.BindEnv("NOMBRE")
-	v.BindEnv("APELLIDO")
-	v.BindEnv("DOCUMENTO")
-	v.BindEnv("NACIMIENTO")
-	v.BindEnv("NUMERO")
+	v.BindEnv("nombre")
+	v.BindEnv("apellido")
+	v.BindEnv("documento")
+	v.BindEnv("nacimiento")
+	v.BindEnv("numero")
 
 	// Try to read configuration from config file. If config file
 	// does not exists then ReadInConfig will fail but configuration
@@ -130,11 +130,11 @@ func main() {
 	}
 
 	clientBet := models.Bet{
-		FirstName: v.GetString("NOMBRE"),
-		LastName:  v.GetString("APELLIDO"),
-		ID:        v.GetInt("DOCUMENTO"),
-		Birthdate: v.GetString("NACIMIENTO"),
-		Number:    v.GetInt("NUMERO"),
+		FirstName: v.GetString("nombre"),
+		LastName:  v.GetString("apellido"),
+		ID:        v.GetInt("documento"),
+		Birthdate: v.GetString("nacimiento"),
+		Number:    v.GetInt("numero"),
 	}
 
 	client := common.NewClient(clientConfig, clientBet, shutdown_ch)
