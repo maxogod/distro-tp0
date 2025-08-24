@@ -13,16 +13,16 @@ class Server:
         self._server_socket.listen(listen_backlog)
 
     def run(self):
-        """
-        Dummy Server loop
+        self._running = True
 
-        Server that accept a new connections and establishes a
-        communication with a client. After client with communucation
-        finishes, servers starts to accept new connections again
-        """
+        while self._running:
+            client_sock = None
+            try:
+                client_sock = self.__accept_new_connection()
+            except OSError as e:
+                logging.error(f"action: accept_connections | result: fail | error: {e}")
+                continue
 
-        while True:
-            client_sock = self.__accept_new_connection()
             protocol = bet_protocol.BetProtocol(client_sock)
             try:
                 bet = protocol.receive_bet()
@@ -32,11 +32,12 @@ class Server:
                 )
                 protocol.send_bet_confirmation()
             except (OSError, EOFError, RuntimeError) as e:
-                logging.error(f"action: receive_message | result: fail | error: {e}")
+                logging.error(f"action: client_bet_communication | result: fail | error: {e}")
             finally:
                 protocol.shutdown()
 
     def shutdown(self):
+        self._running = False
         self._server_socket.close()
 
     def __accept_new_connection(self):
