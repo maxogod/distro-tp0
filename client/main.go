@@ -130,8 +130,8 @@ func main() {
 	}
 
 	clientBet := models.Bet{
-		Name:      v.GetString("nombre"),
-		Surname:   v.GetString("apellido"),
+		FirstName: v.GetString("nombre"),
+		LastName:  v.GetString("apellido"),
 		ID:        v.GetInt("documento"),
 		Birthdate: v.GetString("nacimiento"),
 		Number:    v.GetInt("numero"),

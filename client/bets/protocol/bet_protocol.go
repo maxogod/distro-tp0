@@ -7,7 +7,7 @@ import (
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/bets/models"
 )
 
-const BET_CONFIRMATION_CODE byte = 1
+const BET_CONFIRMATION_CODE byte = 0x01
 
 type betProtocol struct {
 	conn net.Conn
@@ -78,4 +78,3 @@ func (bp *betProtocol) readFull(buf []byte) error {
 	}
 	return nil
 }
-
