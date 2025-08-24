@@ -8,6 +8,7 @@ import (
 )
 
 const BET_CONFIRMATION_CODE byte = 0x01
+const PROTOCOL_HEADER_SIZE int = 4
 
 type betProtocol struct {
 	conn net.Conn
@@ -25,7 +26,7 @@ func NewBetProtocol(serverAddress string) (BetProtocol, error) {
 
 func (bp *betProtocol) SendBet(bet models.Bet) error {
 	betBytes := []byte(bet.ToString())
-	betLen := make([]byte, 4)
+	betLen := make([]byte, PROTOCOL_HEADER_SIZE)
 	binary.BigEndian.PutUint32(betLen, uint32(len(betBytes)))
 
 	if err := bp.writeFull(betLen); err != nil {

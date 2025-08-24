@@ -1,9 +1,10 @@
-from common.utils import *
+from bets.utils import *
+from bets.models.bet import Bet
+import datetime
 import os
 import unittest
 
 class TestUtils(unittest.TestCase):
-
     def tearDown(self):
         if os.path.exists(STORAGE_FILEPATH):
             os.remove(STORAGE_FILEPATH)
@@ -32,7 +33,6 @@ class TestUtils(unittest.TestCase):
 
         self.assertEqual(1, len(from_load))
         self._assert_equal_bets(to_store[0], from_load[0])
-
 
     def test_store_bets_and_load_bets_keeps_registry_order(self):
         to_store = [

@@ -1,26 +1,31 @@
 import socket
+import bets.utils as utils
 
-import common.utils as utils
-
-BET_CONFIRMATION_CODE = 0x01
+BET_CONFIRMATION_CODE: int = 0x01
+PROTOCOL_HEADER_SIZE: int = 4
 
 class BetProtocol:
     def __init__(self, skt: socket.socket) -> None:
         self._skt = skt
 
     def shutdown(self) -> None:
+        """ Closes the connection with the client. """
         self._skt.close()
 
     def receive_bet(self) -> utils.Bet:
-        msg_len_bytes = self.__read_full(4)
+        """ Receives a bet from client and returns it. """
+        msg_len_bytes = self.__read_full(PROTOCOL_HEADER_SIZE)
         msg_len = int.from_bytes(msg_len_bytes, byteorder='big')
+
         msg_bytes = self.__read_full(msg_len)
         msg_str = msg_bytes.decode('utf-8')
+
         first_name, last_name, document, birthdate, number = msg_str.split('|')
         return utils.Bet("1", first_name, last_name, document, birthdate, number)
 
     def send_bet_confirmation(self) -> None:
-        confirmation_code_bytes = BET_CONFIRMATION_CODE.to_bytes(1, byteorder='big')
+        """ Sends a bet confirmation to the client. """
+        confirmation_code_bytes = BET_CONFIRMATION_CODE.to_bytes(length=1, byteorder='big')
         self.__write_full(confirmation_code_bytes)
     
     def __read_full(self, n: int) -> bytes:

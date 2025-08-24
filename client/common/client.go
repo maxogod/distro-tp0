@@ -18,11 +18,10 @@ type ClientConfig struct {
 	LoopPeriod    time.Duration
 }
 
-// Client Entity that encapsulates how
+// Client Entity that encapsulates client orchestration
 type Client struct {
 	config      ClientConfig
 	bet         models.Bet
-	protocol    betProtocol.BetProtocol
 	shutdown_ch chan bool
 }
 
@@ -40,7 +39,7 @@ func NewClient(config ClientConfig, clientBet models.Bet, shutdown_ch chan bool)
 // createClientProtocol Initializes client protocol. In case of
 // failure, error is printed in stdout/stderr and exit 1
 // is returned
-func (c *Client) createClientProtocol() error {
+func (c *Client) createClientProtocol() (betProtocol.BetProtocol, error) {
 	protocol, err := betProtocol.NewBetProtocol(c.config.ServerAddress)
 	if err != nil {
 		log.Criticalf(
@@ -50,26 +49,27 @@ func (c *Client) createClientProtocol() error {
 		)
 	}
 
+	// Goroutine for graceful shutdown after receiving shutdown signal
 	go func() {
 		if <-c.shutdown_ch {
 			_ = protocol.Shutdown()
 		}
 	}()
 
-	c.protocol = protocol
-	return nil
+	return protocol, nil
 }
 
-// StartClientLoop Send messages to the client until some time threshold is met
+// StartClientLoop starts the client logic
 func (c *Client) StartClientLoop() {
-	if err := c.createClientProtocol(); err != nil {
+	protocol, err := c.createClientProtocol()
+	if err != nil {
 		return
 	}
-	defer c.protocol.Shutdown()
+	defer protocol.Shutdown()
 
-	c.protocol.SendBet(c.bet)
+	protocol.SendBet(c.bet)
 
-	confirmed, err := c.protocol.ReceiveConfirmation()
+	confirmed, err := protocol.ReceiveConfirmation()
 	if err == nil && confirmed {
 		log.Infof("action: apuesta_enviada | result: success | dni: %d | numero: %d",
 			c.bet.ID,

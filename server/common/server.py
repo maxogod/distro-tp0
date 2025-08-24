@@ -1,8 +1,7 @@
 import socket
 import logging
-
-import common.bet_protocol as bet_protocol
-import common.utils as utils
+import bets.protocol.bet_protocol as bet_protocol
+import bets.utils as utils
 
 
 class Server:
@@ -13,6 +12,7 @@ class Server:
         self._server_socket.listen(listen_backlog)
 
     def run(self):
+        """ Main server logic loop. """
         self._running = True
 
         while self._running:
@@ -37,6 +37,7 @@ class Server:
                 protocol.shutdown()
 
     def shutdown(self):
+        """ Stop running server and close any communication. """
         self._running = False
         self._server_socket.close()
 

@@ -40,6 +40,7 @@ func InitConfig() (*viper.Viper, error) {
 	v.BindEnv("loop", "period")
 	v.BindEnv("loop", "amount")
 	v.BindEnv("log", "level")
+
 	// Client info
 	v.BindEnv("nombre")
 	v.BindEnv("apellido")
@@ -99,7 +100,7 @@ func PrintConfig(v *viper.Viper) {
 	)
 }
 
-func main() {
+func setupSigTermHandler() chan bool {
 	sigs := make(chan os.Signal, 1)
 	signal.Notify(sigs, syscall.SIGTERM)
 
@@ -109,6 +110,12 @@ func main() {
 		_ = <-sigs          // Blocking wait for SIGTERM
 		shutdown_ch <- true // Notify other goroutines
 	}()
+
+	return shutdown_ch
+}
+
+func main() {
+	shutdown_ch := setupSigTermHandler()
 
 	v, err := InitConfig()
 	if err != nil {
