@@ -10,7 +10,9 @@ class BetProtocol:
 
     def shutdown(self) -> None:
         """ Closes the connection with the client. """
-        self._skt.close()
+        if self._skt.fileno() != -1:
+            self._skt.shutdown(socket.SHUT_RDWR)
+            self._skt.close()
 
     def receive_bet(self) -> utils.Bet:
         """ Receives a bet from client and returns it. """

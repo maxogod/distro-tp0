@@ -11,35 +11,40 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
 
+        self._client_conn = None
+
     def run(self):
         """ Main server logic loop. """
         self._running = True
 
         while self._running:
-            client_sock = None
             try:
-                client_sock = self.__accept_new_connection()
+                client_socket = self.__accept_new_connection()
             except OSError as e:
                 logging.error(f"action: accept_connections | result: fail | error: {e}")
                 continue
 
-            protocol = bet_protocol.BetProtocol(client_sock)
+            self._client_conn = bet_protocol.BetProtocol(client_socket)
             try:
-                bet = protocol.receive_bet()
+                bet = self._client_conn.receive_bet()
                 utils.store_bets([bet])
                 logging.info(
                     f"action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}"
                 )
-                protocol.send_bet_confirmation()
+                self._client_conn.send_bet_confirmation()
             except (OSError, EOFError, RuntimeError) as e:
                 logging.error(f"action: client_bet_communication | result: fail | error: {e}")
             finally:
-                protocol.shutdown()
+                self._client_conn.shutdown()
+                self._client_conn = None
 
     def shutdown(self):
         """ Stop running server and close any communication. """
         self._running = False
         self._server_socket.close()
+
+        if self._client_conn is not None:
+            self._client_conn.shutdown()
 
     def __accept_new_connection(self):
         """
