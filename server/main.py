@@ -40,6 +40,27 @@ def initialize_config():
 
     return config_params
 
+def initialize_log(logging_level):
+    """
+    Python custom logging initialization
+
+    Current timestamp is added to be able to identify in docker
+    compose logs the date when the log has arrived
+    """
+    logging.basicConfig(
+        format='%(asctime)s %(levelname)-8s %(message)s',
+        level=logging_level,
+        datefmt='%Y-%m-%d %H:%M:%S',
+    )
+
+
+def setup_sigterm_handler(server):
+    """ Setup SIGTERM handler to gracefully shutdown the server. """
+    def sigterm_handler(_signo, _stack_frame):
+        server.shutdown()
+        sys.exit(0)
+    signal.signal(signal.SIGTERM, sigterm_handler)
+
 
 def main():
     config_params = initialize_config()
@@ -58,26 +79,9 @@ def main():
     server = Server(port, listen_backlog)
 
     # SIGTERM handler setup
-    def sigterm_handler(_signo, _stack_frame):
-        server.shutdown()
-        sys.exit(0)
-    signal.signal(signal.SIGTERM, sigterm_handler)
+    setup_sigterm_handler(server)
 
     server.run()
-
-
-def initialize_log(logging_level):
-    """
-    Python custom logging initialization
-
-    Current timestamp is added to be able to identify in docker
-    compose logs the date when the log has arrived
-    """
-    logging.basicConfig(
-        format='%(asctime)s %(levelname)-8s %(message)s',
-        level=logging_level,
-        datefmt='%Y-%m-%d %H:%M:%S',
-    )
 
 
 if __name__ == "__main__":

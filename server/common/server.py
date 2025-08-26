@@ -9,6 +9,8 @@ class Server:
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
 
+        self._client_socket = None
+
     def run(self):
         """
         Dummy Server loop
@@ -20,18 +22,23 @@ class Server:
 
         self._running = True
         while self._running:
-            client_sock = None
             try:
-                client_sock = self.__accept_new_connection()
+                self._client_socket = self.__accept_new_connection()
             except OSError as e:
                 logging.error(f"action: accept_connections | result: fail | error: {e}")
                 continue
 
-            self.__handle_client_connection(client_sock)
+            self.__handle_client_connection(self._client_socket)
+            self._client_socket = None # Not used anymore
 
     def shutdown(self):
         self._running = False
         self._server_socket.close()
+
+        if self._client_socket is not None:
+            # Close on-going client connection
+            self._client_socket.shutdown(socket.SHUT_RDWR)
+            self._client_socket.close()
 
     def __handle_client_connection(self, client_sock):
         """
