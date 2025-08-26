@@ -16,3 +16,12 @@ posteriormente envia un mensaje a travez de un canal usado especificamente para 
 *GoRoutines*. El *client loop* utiliza un bloque `select` para evaluar si se recibio un mensaje a travez de dicho canal
 y cerrar ordenadamente el programa, sino, se continua con el resto de la logica de negocio, y al terminar la iteracion
 vuelve a ejecutar los mismos pasos hasta que se produzca un *shutdown* o se termine la logica.
+
+### Como ejecutar
+
+La interfaz de uso se dejo sin modificaciones.
+
+```bash
+make docker-compose-up # Construye y ejecuta los servicios
+make docker-compose-down # Detiene la ejecucion de containers (enviando SIGTERM) con timeout 1seg y los elimina.
+```
