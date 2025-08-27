@@ -21,15 +21,22 @@ func NewBetProtocol(serverAddress string) (BetProtocol, error) {
 	}, nil
 }
 
-func (bp *betProtocol) SendBet(bet models.Bet) error {
-	betBytes := []byte(bet.ToString())
+func (bp *betProtocol) SendBetBatch(batch []models.Bet) error {
+	// [HEADER][BATCH_SIZE][BET1_LEN][BET1]...[BETN_LEN][BETN]
 
-	betLen := make([]byte, BET_LENGTH_SIZE)
-	binary.BigEndian.PutUint32(betLen, uint32(len(betBytes)))
+	payload := []byte{BET_DATA_HEADER} // 1 byte
 
-	// Make payload: HEADER + LENGTH + DATA
-	payload := append([]byte{BET_DATA_HEADER}, betLen...)
-	payload = append(payload, betBytes...)
+	batchSize := make([]byte, BET_LENGTH_SIZE) // 4 bytes
+	binary.BigEndian.PutUint32(batchSize, uint32(len(batch)))
+	payload = append(payload, batchSize...)
+
+	for _, bet := range batch {
+		betBytes := []byte(bet.ToString())
+		betLen := make([]byte, BET_LENGTH_SIZE) // 4 bytes
+		binary.BigEndian.PutUint32(betLen, uint32(len(betBytes)))
+		payload = append(payload, betLen...)
+		payload = append(payload, betBytes...)
+	}
 
 	if err := bp.writeFull(payload); err != nil {
 		return err

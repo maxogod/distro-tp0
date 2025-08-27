@@ -1,6 +1,8 @@
 import socket
 import bets.utils as utils
+from bets.models.bet import Bet
 from bets.protocol.consts import *
+from bets.protocol.errors import *
 
 class BetProtocol:
     def __init__(self, skt: socket.socket) -> None:
@@ -12,20 +14,35 @@ class BetProtocol:
             self._skt.shutdown(socket.SHUT_RDWR)
             self._skt.close()
 
-    def receive_bet(self) -> utils.Bet:
-        """ Receives a bet from client and returns it. """
+    def receive_bet_batch(self) -> list[Bet]:
+        """ Receives a batch of bets from client and returns them. """
+
+        # [HEADER][BATCH_SIZE][BET1_LEN][BET1]...[BETN_LEN][BETN]
         header = int.from_bytes(self.__read_full(PROTOCOL_HEADER_SIZE), byteorder='big')
         if header != BET_DATA_HEADER:
             raise ValueError("Received invalid header.")
 
-        msg_len_bytes = self.__read_full(BET_LENGTH_SIZE)
-        msg_len = int.from_bytes(msg_len_bytes, byteorder='big')
+        batch_size_bytes = self.__read_full(BET_LENGTH_SIZE)
+        batch_size = int.from_bytes(batch_size_bytes, byteorder='big')
 
-        msg_bytes = self.__read_full(msg_len)
-        msg_str = msg_bytes.decode('utf-8')
+        bets = []
+        for _ in range(batch_size):
+            msg_len_bytes = self.__read_full(BET_LENGTH_SIZE)
+            msg_len = int.from_bytes(msg_len_bytes, byteorder='big')
 
-        first_name, last_name, document, birthdate, number = msg_str.split('|')
-        return utils.Bet("1", first_name, last_name, document, birthdate, number)
+            msg_bytes = self.__read_full(msg_len)
+            msg_str = msg_bytes.decode('utf-8')
+
+            try:
+                first_name, last_name, document, birthdate, number = msg_str.split('|')
+                bets.append(Bet("1", first_name, last_name, document, birthdate, number))
+            except ValueError:
+                continue # Ignore malformed bets
+
+        if len(bets) != batch_size:
+            raise InconsistentBatchSizeError(batch_size)
+
+        return bets
 
     def send_bet_confirmation(self) -> None:
         """ Sends a bet confirmation to the client. """
@@ -39,7 +56,7 @@ class BetProtocol:
         while bytes_received < n:
             chunk_size = self._skt.recv_into(view[bytes_received:])
             if chunk_size == 0:
-                raise EOFError("Socket connection closed.")
+                raise ConnectionClosedError("Socket connection closed.")
             bytes_received += chunk_size
         return bytes(buff)
 
@@ -49,7 +66,9 @@ class BetProtocol:
         bytes_sent = 0
         n = len(data)
         while bytes_sent < n:
-            chunk_size = self._skt.send(view[bytes_sent:])
-            if chunk_size == 0:
-                raise RuntimeError("Socket connection broken.")
+            chunk_size = 0
+            try:
+                chunk_size = self._skt.send(view[bytes_sent:])
+            except (BrokenPipeError, ConnectionResetError):
+                raise ConnectionClosedError("Socket connection closed.")
             bytes_sent += chunk_size

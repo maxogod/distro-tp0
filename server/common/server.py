@@ -2,6 +2,7 @@ import socket
 import logging
 import bets.protocol.bet_protocol as bet_protocol
 import bets.utils as utils
+from bets.protocol.errors import InconsistentBatchSizeError, ConnectionClosedError
 
 
 class Server:
@@ -25,18 +26,19 @@ class Server:
                 continue
 
             self._client_conn = bet_protocol.BetProtocol(client_socket)
-            try:
-                bet = self._client_conn.receive_bet()
-                utils.store_bets([bet])
-                logging.info(
-                    f"action: apuesta_almacenada | result: success | dni: {bet.document} | numero: {bet.number}"
-                )
-                self._client_conn.send_bet_confirmation()
-            except (OSError, EOFError, RuntimeError) as e:
-                logging.error(f"action: client_bet_communication | result: fail | error: {e}")
-            finally:
-                self._client_conn.shutdown()
-                self._client_conn = None
+            while self._client_conn is not None:
+                try:
+                    batch = self._client_conn.receive_bet_batch()
+                    logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(batch)}")
+
+                    utils.store_bets(batch)
+                    self._client_conn.send_bet_confirmation()
+                except InconsistentBatchSizeError as e:
+                    logging.error(f"action: apuesta_recibida | result: fail | cantidad: {e.size_expected}")
+                except ConnectionClosedError as e:
+                    logging.error(f"action: client_bet_communication | result: fail | error: {e}")
+                    self._client_conn.shutdown()
+                    self._client_conn = None
 
     def shutdown(self):
         """ Stop running server and close any communication. """
@@ -45,6 +47,7 @@ class Server:
 
         if self._client_conn is not None:
             self._client_conn.shutdown()
+            self._client_conn = None
 
     def __accept_new_connection(self):
         """

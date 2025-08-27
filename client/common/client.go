@@ -1,6 +1,9 @@
 package common
 
 import (
+	"encoding/csv"
+	"os"
+	"strconv"
 	"time"
 
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/bets/models"
@@ -12,26 +15,25 @@ var log = logging.MustGetLogger("log")
 
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
-	ID            string
-	ServerAddress string
-	LoopAmount    int
-	LoopPeriod    time.Duration
+	ID             string
+	ServerAddress  string
+	LoopAmount     int
+	LoopPeriod     time.Duration
+	AgencyDataPath string
 }
 
 // Client Entity that encapsulates client orchestration
 type Client struct {
 	config      ClientConfig
-	bet         models.Bet
 	shutdown_ch chan bool
 }
 
 // NewClient Initializes a new client receiving the configuration
 // as a parameter
-func NewClient(config ClientConfig, clientBet models.Bet, shutdown_ch chan bool) *Client {
+func NewClient(config ClientConfig, shutdown_ch chan bool) *Client {
 	client := &Client{
 		config:      config,
 		shutdown_ch: shutdown_ch,
-		bet:         clientBet,
 	}
 	return client
 }
@@ -67,13 +69,74 @@ func (c *Client) StartClientLoop() {
 	}
 	defer protocol.Shutdown()
 
-	protocol.SendBet(c.bet)
+	batches_ch := make(chan []models.Bet, 10)
+	go c.betBatchGenerator(batches_ch)
 
-	confirmed, err := protocol.ReceiveConfirmation()
-	if err == nil && confirmed {
-		log.Infof("action: apuesta_enviada | result: success | dni: %d | numero: %d",
-			c.bet.ID,
-			c.bet.Number,
-		)
+	// Iterate batches until channel is closed
+	for batch := range batches_ch {
+		err := protocol.SendBetBatch(batch)
+		if err != nil {
+			log.Warningf("action: apuesta_enviada | result: fail | error: %v", err)
+			break // Connection error
+		}
+
+		log.Infof("action: apuesta_enviada | result: success | cantidad: %d", len(batch))
+		confirmed, err := protocol.ReceiveConfirmation()
+		if err == nil && confirmed {
+			log.Infof("action: apuesta_confirmada | result: success | cantidad: %d", len(batch))
+		}
+	}
+
+	log.Infof("action: client_%s_finished | result: success", c.config.ID)
+}
+
+/* UTILS */
+
+// betBatchGenerator is the producer for a given channel of batches of bets.
+func (c *Client) betBatchGenerator(batches_ch chan []models.Bet) {
+	agency_csv, err := os.Open(c.config.AgencyDataPath)
+	if err != nil {
+		log.Criticalf("action: open_agency_data | result: fail | error: %v", err)
+		close(batches_ch)
+		return
+	}
+	defer agency_csv.Close()
+	defer close(batches_ch)
+
+	reader := csv.NewReader(agency_csv)
+
+	max_capacity := 115
+	batch := make([]models.Bet, 0, max_capacity)
+	for {
+		rec, err := reader.Read()
+		if err != nil {
+			if err.Error() == "EOF" && len(batch) > 0 {
+				batches_ch <- batch // Send remaining bets
+			}
+			break
+		}
+
+		firstName := rec[0]
+		lastName := rec[1]
+		id, errID := strconv.Atoi(rec[2])
+		birthDate := rec[3]
+		number, errNumber := strconv.Atoi(rec[4])
+		if errID != nil || errNumber != nil {
+			continue
+		}
+
+		bet := models.Bet{
+			FirstName: firstName,
+			LastName:  lastName,
+			ID:        id,
+			Birthdate: birthDate,
+			Number:    number,
+		}
+		batch = append(batch, bet)
+
+		if len(batch) == max_capacity {
+			batches_ch <- batch
+			batch = make([]models.Bet, 0, max_capacity)
+		}
 	}
 }

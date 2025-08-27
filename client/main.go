@@ -12,7 +12,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 
-	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/bets/models"
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/common"
 )
 
@@ -40,13 +39,7 @@ func InitConfig() (*viper.Viper, error) {
 	v.BindEnv("loop", "period")
 	v.BindEnv("loop", "amount")
 	v.BindEnv("log", "level")
-
-	// Client info
-	v.BindEnv("nombre")
-	v.BindEnv("apellido")
-	v.BindEnv("documento")
-	v.BindEnv("nacimiento")
-	v.BindEnv("numero")
+	v.BindEnv("agency_data")
 
 	// Try to read configuration from config file. If config file
 	// does not exists then ReadInConfig will fail but configuration
@@ -97,6 +90,7 @@ func PrintConfig(v *viper.Viper) {
 		v.GetInt("loop.amount"),
 		v.GetDuration("loop.period"),
 		v.GetString("log.level"),
+		v.GetString("agency_data"),
 	)
 }
 
@@ -130,20 +124,13 @@ func main() {
 	PrintConfig(v)
 
 	clientConfig := common.ClientConfig{
-		ServerAddress: v.GetString("server.address"),
-		ID:            v.GetString("id"),
-		LoopAmount:    v.GetInt("loop.amount"),
-		LoopPeriod:    v.GetDuration("loop.period"),
+		ServerAddress:  v.GetString("server.address"),
+		ID:             v.GetString("id"),
+		LoopAmount:     v.GetInt("loop.amount"),
+		LoopPeriod:     v.GetDuration("loop.period"),
+		AgencyDataPath: v.GetString("agency_data"),
 	}
 
-	clientBet := models.Bet{
-		FirstName: v.GetString("nombre"),
-		LastName:  v.GetString("apellido"),
-		ID:        v.GetInt("documento"),
-		Birthdate: v.GetString("nacimiento"),
-		Number:    v.GetInt("numero"),
-	}
-
-	client := common.NewClient(clientConfig, clientBet, shutdown_ch)
+	client := common.NewClient(clientConfig, shutdown_ch)
 	client.StartClientLoop()
 }
