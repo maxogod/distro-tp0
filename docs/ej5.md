@@ -24,21 +24,22 @@ El protocolo creado es simple ya que la logica lo amerita, y cuenta con las 2 si
 - Enviar/Recibir apuesta
 - Enviar/Recibir confirmacion
 
-El formato del mensaje `apuesta` es un header conteniendo el largo de la misma seguido por una cadena de caracteres.
+El formato del mensaje `apuesta` es un header indicando el tipo de mensaje (`0x01`) seguido de 4 bytes conteniendo el largo de la misma seguido 
+por una cadena de caracteres.
 La representacion de la apuesta como cadena lleva el formato `campo1|campo2|...` (luego se crea un objeto Bet del dominio a partir de la cadena).
 
 ```raw
-[4-Byte length header BigEndian][Bet as string]
+[1-Byte data header][4-Byte length in BigEndian][Bet as string]
 
-e.g. 0x00000026nombre|apellido|30111222|2000-01-30|14
+e.g. 0x010x00000026nombre|apellido|30111222|2000-01-30|14
 ```
 
-El mensaje de `confirmacion` es un simple byte, utilizado como header y con el valor `0x01`.
+El mensaje de `confirmacion` es un simple byte, utilizado como header y con el valor `0x02`.
 
 ```
 [1-Byte confirmation header]
 
-e.g. 0x01
+e.g. 0x02
 ```
 
 ### Nueva estructura
