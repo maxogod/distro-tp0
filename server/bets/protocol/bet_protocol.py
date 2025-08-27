@@ -1,8 +1,6 @@
 import socket
 import bets.utils as utils
-
-BET_CONFIRMATION_CODE: int = 0x01
-PROTOCOL_HEADER_SIZE: int = 4
+from bets.protocol.consts import *
 
 class BetProtocol:
     def __init__(self, skt: socket.socket) -> None:
@@ -16,7 +14,11 @@ class BetProtocol:
 
     def receive_bet(self) -> utils.Bet:
         """ Receives a bet from client and returns it. """
-        msg_len_bytes = self.__read_full(PROTOCOL_HEADER_SIZE)
+        header = self.__read_full(PROTOCOL_HEADER_SIZE)
+        if header != BET_DATA_HEADER:
+            raise ValueError("Received invalid header.")
+
+        msg_len_bytes = self.__read_full(BET_LENGTH_SIZE)
         msg_len = int.from_bytes(msg_len_bytes, byteorder='big')
 
         msg_bytes = self.__read_full(msg_len)
@@ -27,7 +29,7 @@ class BetProtocol:
 
     def send_bet_confirmation(self) -> None:
         """ Sends a bet confirmation to the client. """
-        confirmation_code_bytes = BET_CONFIRMATION_CODE.to_bytes(length=1, byteorder='big')
+        confirmation_code_bytes = BET_CONFIRMATION_HEADER.to_bytes(length=1, byteorder='big')
         self.__write_full(confirmation_code_bytes)
     
     def __read_full(self, n: int) -> bytes:

@@ -7,9 +7,6 @@ import (
 	"github.com/7574-sistemas-distribuidos/docker-compose-init/client/bets/models"
 )
 
-const BET_CONFIRMATION_CODE byte = 0x01
-const PROTOCOL_HEADER_SIZE int = 4
-
 type betProtocol struct {
 	conn net.Conn
 }
@@ -26,14 +23,15 @@ func NewBetProtocol(serverAddress string) (BetProtocol, error) {
 
 func (bp *betProtocol) SendBet(bet models.Bet) error {
 	betBytes := []byte(bet.ToString())
-	betLen := make([]byte, PROTOCOL_HEADER_SIZE)
+
+	betLen := make([]byte, BET_LENGTH_SIZE)
 	binary.BigEndian.PutUint32(betLen, uint32(len(betBytes)))
 
-	if err := bp.writeFull(betLen); err != nil {
-		return err
-	}
+	// Make payload: HEADER + LENGTH + DATA
+	payload := append([]byte{BET_DATA_HEADER}, betLen...)
+	payload = append(payload, betBytes...)
 
-	if err := bp.writeFull([]byte(betBytes)); err != nil {
+	if err := bp.writeFull(payload); err != nil {
 		return err
 	}
 
@@ -41,13 +39,13 @@ func (bp *betProtocol) SendBet(bet models.Bet) error {
 }
 
 func (bp *betProtocol) ReceiveConfirmation() (bool, error) {
-	confirmation := make([]byte, 1)
+	confirmation := make([]byte, PROTOCOL_HEADER_SIZE)
 
 	if err := bp.readFull(confirmation); err != nil {
 		return false, err
 	}
 
-	return confirmation[0] == BET_CONFIRMATION_CODE, nil
+	return confirmation[0] == BET_CONFIRMATION_HEADER, nil
 }
 
 func (bp *betProtocol) Shutdown() error {

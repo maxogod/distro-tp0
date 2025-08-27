@@ -1,0 +1,7 @@
+# Number sizes
+PROTOCOL_HEADER_SIZE: int = 1
+BET_LENGTH_SIZE: int = 4
+
+# Headers
+BET_DATA_HEADER: int = 0x01
+BET_CONFIRMATION_HEADER: int = 0x02
