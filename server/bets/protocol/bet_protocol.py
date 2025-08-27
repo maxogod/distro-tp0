@@ -14,7 +14,7 @@ class BetProtocol:
 
     def receive_bet(self) -> utils.Bet:
         """ Receives a bet from client and returns it. """
-        header = self.__read_full(PROTOCOL_HEADER_SIZE)
+        header = int.from_bytes(self.__read_full(PROTOCOL_HEADER_SIZE), byteorder='big')
         if header != BET_DATA_HEADER:
             raise ValueError("Received invalid header.")
 
