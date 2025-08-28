@@ -76,18 +76,14 @@ func (c *Client) StartClientLoop() {
 	for batch := range batches_ch {
 		err := protocol.SendBetBatch(batch)
 		if err != nil {
-			log.Warningf("action: apuesta_enviada | result: fail | error: %v", err)
 			break // Connection error
 		}
 
-		log.Infof("action: apuesta_enviada | result: success | cantidad: %d", len(batch))
 		confirmed, err := protocol.ReceiveConfirmation()
 		if err == nil && confirmed {
 			log.Infof("action: apuesta_confirmada | result: success | cantidad: %d", len(batch))
 		}
 	}
-
-	log.Infof("action: client_%s_finished | result: success", c.config.ID)
 }
 
 /* UTILS */

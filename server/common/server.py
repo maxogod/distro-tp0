@@ -36,7 +36,6 @@ class Server:
                 except InconsistentBatchSizeError as e:
                     logging.error(f"action: apuesta_recibida | result: fail | cantidad: {e.size_expected}")
                 except ConnectionClosedError as e:
-                    logging.error(f"action: client_bet_communication | result: fail | error: {e}")
                     self._client_conn.shutdown()
                     self._client_conn = None
 
