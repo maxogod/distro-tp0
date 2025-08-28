@@ -23,7 +23,7 @@ class Server:
                 client_socket = self.__accept_new_connection()
             except OSError as e:
                 logging.error(f"action: accept_connections | result: fail | error: {e}")
-                continue
+                break
 
             self._client_conn = bet_protocol.BetProtocol(client_socket)
             while self._client_conn is not None:
