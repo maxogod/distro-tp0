@@ -19,6 +19,7 @@ type ClientConfig struct {
 	ServerAddress  string
 	LoopAmount     int
 	LoopPeriod     time.Duration
+	BatchMaxAmount int
 	AgencyDataPath string
 }
 
@@ -101,8 +102,7 @@ func (c *Client) betBatchGenerator(batches_ch chan []models.Bet) {
 
 	reader := csv.NewReader(agency_csv)
 
-	max_capacity := 115
-	batch := make([]models.Bet, 0, max_capacity)
+	batch := make([]models.Bet, 0, c.config.BatchMaxAmount)
 	for {
 		rec, err := reader.Read()
 		if err != nil {
@@ -130,9 +130,9 @@ func (c *Client) betBatchGenerator(batches_ch chan []models.Bet) {
 		}
 		batch = append(batch, bet)
 
-		if len(batch) == max_capacity {
+		if len(batch) == c.config.BatchMaxAmount {
 			batches_ch <- batch
-			batch = make([]models.Bet, 0, max_capacity)
+			batch = make([]models.Bet, 0, c.config.BatchMaxAmount)
 		}
 	}
 }
