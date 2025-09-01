@@ -84,6 +84,8 @@ def main():
 
     server.run()
 
+    logging.info("action: exit | result: success")
+
 
 if __name__ == "__main__":
     main()
