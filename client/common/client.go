@@ -85,6 +85,7 @@ func (c *Client) StartClientLoop() {
 			log.Infof("action: apuesta_confirmada | result: success | cantidad: %d", len(batch))
 		}
 	}
+	time.Sleep(c.config.LoopPeriod)
 }
 
 /* UTILS */
