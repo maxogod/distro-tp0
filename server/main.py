@@ -59,7 +59,6 @@ def setup_sigterm_handler(server):
     """ Setup SIGTERM handler to gracefully shutdown the server. """
     def sigterm_handler(_signo, _stack_frame):
         server.shutdown()
-        sys.exit(0)
     signal.signal(signal.SIGTERM, sigterm_handler)
 
 
@@ -85,6 +84,8 @@ def main():
     server.run()
 
     logging.info("action: exit | result: success")
+
+    sys.exit(0)
 
 
 if __name__ == "__main__":

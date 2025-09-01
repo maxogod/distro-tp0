@@ -39,6 +39,7 @@ class Server:
                 except ConnectionClosedError as e:
                     self._client_conn.shutdown()
                     self._client_conn = None
+                # Make sure logs are written
                 sys.stdout.flush()
                 sys.stderr.flush()
 
