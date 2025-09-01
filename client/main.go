@@ -136,4 +136,8 @@ func main() {
 
 	client := common.NewClient(clientConfig, shutdown_ch)
 	client.StartClientLoop()
+
+	os.Stdout.Sync()
+	os.Stderr.Sync()
+	os.Exit(0)
 }

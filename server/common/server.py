@@ -1,4 +1,5 @@
 import socket
+import sys
 import logging
 import bets.protocol.bet_protocol as bet_protocol
 import bets.utils as utils
@@ -38,6 +39,8 @@ class Server:
                 except ConnectionClosedError as e:
                     self._client_conn.shutdown()
                     self._client_conn = None
+                sys.stdout.flush()
+                sys.stderr.flush()
 
     def shutdown(self):
         """ Stop running server and close any communication. """
