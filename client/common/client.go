@@ -85,10 +85,7 @@ func (c *Client) StartClientLoop() {
 			return // Connection error
 		}
 
-		confirmed, err := protocol.ReceiveConfirmation()
-		if err == nil && confirmed {
-			log.Infof("action: apuesta_confirmada | result: success | cantidad: %d", len(batch))
-		}
+		protocol.ReceiveConfirmation()
 	}
 
 	err = protocol.NotifyBetsFinished()

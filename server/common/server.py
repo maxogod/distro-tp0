@@ -36,10 +36,8 @@ class Server:
                 try:
                     batch = client_conn.receive_bet_batch()
                     if not batch:
-                        logging.info("action: apuestas_finalizadas | result: success | agency: 1")
+                        logging.info(f"action: apuestas_finalizadas | result: success | agency: {agency_id}")
                         break
-
-                    logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(batch)}")
 
                     utils.store_bets(batch)
                     client_conn.send_bet_confirmation()
@@ -60,7 +58,7 @@ class Server:
                 winner_ids_per_agency[bet.agency].append(int(bet.document))
 
         for agency_id, conn in self._clients_connected.items():
-            if not conn: continue
+            if not conn or agency_id not in winner_ids_per_agency: continue
             conn.send_winner_ids(winner_ids_per_agency[agency_id])
 
     def shutdown(self):
