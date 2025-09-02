@@ -50,6 +50,7 @@ class Server:
                 sys.stdout.flush()
                 sys.stderr.flush()
 
+        logging.info("action: sorteo | result: success")
         winner_ids_per_agency: dict[int, list[int]] = {}
         for bet in utils.load_bets():
             if utils.has_won(bet):
