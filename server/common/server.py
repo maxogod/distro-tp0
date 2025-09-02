@@ -1,6 +1,7 @@
 import socket
 import sys
 import logging
+import multiprocessing
 from bets.protocol.bet_protocol import BetProtocol
 import bets.utils as utils
 from bets.protocol.errors import InconsistentBatchSizeError, ConnectionClosedError
@@ -14,7 +15,13 @@ class Server:
         self._server_socket.listen(listen_backlog)
 
         self._agencies_amount = agencies_amount
-        self._clients_connected: dict[int, BetProtocol | None] = {}
+        
+        # Multiprocessing
+        manager = multiprocessing.Manager()
+        self._agencies_finished = manager.dict()
+        self._bet_storage_lock = multiprocessing.Lock()
+        self._lottery_start_event = multiprocessing.Event()
+        self._processes = []
 
     def __del__(self):
         self.shutdown()
@@ -23,7 +30,7 @@ class Server:
         """ Main server logic loop. """
         self._running = True
 
-        while self._running and self.__are_agencies_remaining():
+        while self._running:
             try:
                 client_socket = self.__accept_new_connection()
             except OSError as e:
@@ -37,56 +44,66 @@ class Server:
                 agency_id = client_conn.receive_agency_id()
             except ConnectionClosedError as e:
                 continue # Next client
-            self._clients_connected[agency_id] = client_conn
 
-            # Handle bets from current agency
-            while self.__is_agency_connected(agency_id):
-                try:
-                    batch = client_conn.receive_bet_batch()
-                    if not batch:
-                        break # No more bets from agency
-
-                    logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(batch)}")
-
-                    utils.store_bets(batch)
-                    client_conn.send_bet_confirmation()
-                except InconsistentBatchSizeError as e:
-                    logging.error(f"action: apuesta_recibida | result: fail | cantidad: {e.size_expected}")
-                except ConnectionClosedError as e:
-                    client_conn.shutdown()
-                    self._clients_connected[agency_id] = None
-                # Make sure logs are written
-                sys.stdout.flush()
-                sys.stderr.flush()
-
-        logging.info("action: sorteo | result: success")
-        winner_ids_per_agency: dict[int, list[int]] = {}
-        for bet in utils.load_bets():
-            if utils.has_won(bet):
-                if bet.agency not in winner_ids_per_agency:
-                    winner_ids_per_agency[bet.agency] = []
-                winner_ids_per_agency[bet.agency].append(int(bet.document))
-
-        for agency_id, conn in self._clients_connected.items():
-            if not conn: continue
-            conn.send_winner_ids(winner_ids_per_agency.get(agency_id, []))
+            # Handle new agency communication in a new process
+            p = multiprocessing.Process(target=self.__handle_agency_connection, args=(agency_id, client_conn))
+            p.start()
+            self._processes.append(p)
 
     def shutdown(self):
         """ Stop running server and close any communication. """
         self._running = False
         self._server_socket.close()
 
-        for agency_id, conn in self._clients_connected.items():
-            if not conn: continue
-            conn.shutdown()
-            self._clients_connected[agency_id] = None
+        for p in self._processes:
+            if p.is_alive():
+                p.terminate()
+                p.join()
+
+    def __handle_agency_connection(self, agency_id, conn: BetProtocol):
+        while True:
+            try:
+                batch = conn.receive_bet_batch()
+                if not batch:
+                    break # No more bets from agency
+
+                logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(batch)}")
+
+                with self._bet_storage_lock:
+                    utils.store_bets(batch)
+
+                conn.send_bet_confirmation()
+            except InconsistentBatchSizeError as e:
+                logging.error(f"action: apuesta_recibida | result: fail | cantidad: {e.size_expected}")
+            except ConnectionClosedError as e:
+                conn.shutdown()
+                self._agencies_finished[agency_id] = True
+                return
+
+            # Make sure logs are written
+            sys.stdout.flush()
+            sys.stderr.flush()
+
+        self._agencies_finished[agency_id] = True
+        if len(self._agencies_finished) == self._agencies_amount:
+            # Last agency to finish, trigger lottery
+            self._lottery_start_event.set()
+        else:
+            self._lottery_start_event.wait()
+
+        logging.info("action: sorteo | result: success")
+        winner_ids: list[int] = []
+        for bet in utils.load_bets(): # Safe read opearation
+            if bet.agency == agency_id and utils.has_won(bet):
+                winner_ids.append(int(bet.document))
+
+        try:
+            conn.send_winner_ids(winner_ids)
+        except ConnectionClosedError as e:
+            pass
+
+        conn.shutdown()
             
-    def __are_agencies_remaining(self):
-        return len(self._clients_connected) < self._agencies_amount
-
-    def __is_agency_connected(self, agency_id):
-        return agency_id in self._clients_connected and self._clients_connected[agency_id] is not None
-
     def __accept_new_connection(self):
         """
         Accept new connections
