@@ -8,14 +8,16 @@ from bets.protocol.errors import InconsistentBatchSizeError, ConnectionClosedErr
 
 class Server:
     def __init__(self, port, listen_backlog, agencies_amount):
-        self._agencies_amount = agencies_amount
-
         # Initialize server socket
         self._server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self._server_socket.bind(('', port))
         self._server_socket.listen(listen_backlog)
 
+        self._agencies_amount = agencies_amount
         self._clients_connected: dict[int, BetProtocol | None] = {}
+
+    def __del__(self):
+        self.shutdown()
 
     def run(self):
         """ Main server logic loop. """
@@ -30,9 +32,15 @@ class Server:
 
             client_conn: BetProtocol = BetProtocol(client_socket)
 
-            agency_id = client_conn.receive_agency_id()
+            # Receive current agency ID
+            try:
+                agency_id = client_conn.receive_agency_id()
+            except ConnectionClosedError as e:
+                continue # Next client
             self._clients_connected[agency_id] = client_conn
-            while self._clients_connected.get(agency_id) is not None:
+
+            # Handle bets from current agency
+            while self.__is_agency_connected(agency_id):
                 try:
                     batch = client_conn.receive_bet_batch()
                     if not batch:
@@ -75,6 +83,9 @@ class Server:
             
     def __are_agencies_remaining(self):
         return len(self._clients_connected) < self._agencies_amount
+
+    def __is_agency_connected(self, agency_id):
+        return agency_id in self._clients_connected and self._clients_connected[agency_id] is not None
 
     def __accept_new_connection(self):
         """
