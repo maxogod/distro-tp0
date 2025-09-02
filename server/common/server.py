@@ -38,6 +38,8 @@ class Server:
                     if not batch:
                         break # No more bets from agency
 
+                    logging.info(f"action: apuesta_recibida | result: success | cantidad: {len(batch)}")
+
                     utils.store_bets(batch)
                     client_conn.send_bet_confirmation()
                 except InconsistentBatchSizeError as e:
