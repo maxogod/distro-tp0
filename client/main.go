@@ -85,8 +85,8 @@ func InitLogger(logLevel string) error {
 // PrintConfig Print all the configuration parameters of the program.
 // For debugging purposes only
 func PrintConfig(v *viper.Viper) {
-	log.Infof("action: config | result: success | client_id: %s | server_address: %s | loop_amount: %v | loop_period: %v | log_level: %s | batch_amount: %d | agency_data: %s",
-		v.GetString("id"),
+	log.Infof("action: config | result: success | client_id: %d | server_address: %s | loop_amount: %v | loop_period: %v | log_level: %s | batch_amount: %d | agency_data: %s",
+		v.GetInt("id"),
 		v.GetString("server.address"),
 		v.GetInt("loop.amount"),
 		v.GetDuration("loop.period"),
@@ -127,7 +127,7 @@ func main() {
 
 	clientConfig := common.ClientConfig{
 		ServerAddress:  v.GetString("server.address"),
-		ID:             v.GetString("id"),
+		ID:             v.GetInt("id"),
 		LoopAmount:     v.GetInt("loop.amount"),
 		LoopPeriod:     v.GetDuration("loop.period"),
 		BatchMaxAmount: v.GetInt("batch.maxAmount"),

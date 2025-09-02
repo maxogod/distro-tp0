@@ -15,7 +15,7 @@ var log = logging.MustGetLogger("log")
 
 // ClientConfig Configuration used by the client
 type ClientConfig struct {
-	ID             string
+	ID             int
 	ServerAddress  string
 	LoopAmount     int
 	LoopPeriod     time.Duration
@@ -70,6 +70,11 @@ func (c *Client) StartClientLoop() {
 	}
 	defer protocol.Shutdown()
 
+	err = protocol.SendAgencyID(c.config.ID)
+	if err != nil {
+		return
+	}
+
 	batches_ch := make(chan []models.Bet, 10)
 	go c.betBatchGenerator(batches_ch)
 
@@ -77,7 +82,7 @@ func (c *Client) StartClientLoop() {
 	for batch := range batches_ch {
 		err := protocol.SendBetBatch(batch)
 		if err != nil {
-			break // Connection error
+			return // Connection error
 		}
 
 		confirmed, err := protocol.ReceiveConfirmation()
@@ -85,6 +90,15 @@ func (c *Client) StartClientLoop() {
 			log.Infof("action: apuesta_confirmada | result: success | cantidad: %d", len(batch))
 		}
 	}
+
+	err = protocol.NotifyBetsFinished()
+	if err != nil {
+		return
+	}
+
+	winnerIDs, err := protocol.ReceiveWinnerIDs()
+	log.Infof("action: consulta_ganadores | result: success | cant_ganadores: %d", len(winnerIDs))
+
 	time.Sleep(c.config.LoopPeriod)
 }
 

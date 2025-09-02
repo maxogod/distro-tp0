@@ -27,6 +27,7 @@ insert_server_service() {
     content+="$(indent_string 2 "entrypoint: python3 /main.py")\n"
     content+="$(indent_string 2 "environment:")\n"
     content+="$(indent_string 3 "- PYTHONUNBUFFERED=1")\n"
+    content+="$(indent_string 3 "- AGENCIES_AMOUNT=$num_clients")\n"
     content+="$(indent_string 2 "volumes:")\n"
     content+="$(indent_string 3 "- ./server/config.ini:/config.ini")\n"
     content+="$(indent_string 2 "networks:")\n"
