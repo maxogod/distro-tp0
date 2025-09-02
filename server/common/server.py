@@ -36,8 +36,7 @@ class Server:
                 try:
                     batch = client_conn.receive_bet_batch()
                     if not batch:
-                        logging.info(f"action: apuestas_finalizadas | result: success | agency: {agency_id}")
-                        break
+                        break # No more bets from agency
 
                     utils.store_bets(batch)
                     client_conn.send_bet_confirmation()

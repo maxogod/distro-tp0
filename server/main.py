@@ -82,8 +82,6 @@ def main():
 
     server.run()
 
-    logging.info("action: exit | result: success")
-
     sys.exit(0)
 
 

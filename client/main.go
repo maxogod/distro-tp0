@@ -137,8 +137,6 @@ func main() {
 	client := common.NewClient(clientConfig, shutdown_ch)
 	client.StartClientLoop()
 
-	log.Info("action: exit | result: success")
-
 	// Make sure all logs are written before exiting
 	os.Stdout.Sync()
 	os.Stderr.Sync()
