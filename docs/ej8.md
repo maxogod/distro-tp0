@@ -1,4 +1,4 @@
-# Documentacion ej7
+# Documentacion ej8
 
 En este ejercicio se mantiene la misma logica confeccionada a lo largo de los ejercicios anteriores, pero permitiendo la posibilidad de manejar las
 comunicaciones con los clientes en paralelo.
