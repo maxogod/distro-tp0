@@ -60,8 +60,8 @@ class Server:
                 winner_ids_per_agency[bet.agency].append(int(bet.document))
 
         for agency_id, conn in self._clients_connected.items():
-            if not conn or agency_id not in winner_ids_per_agency: continue
-            conn.send_winner_ids(winner_ids_per_agency[agency_id])
+            if not conn: continue
+            conn.send_winner_ids(winner_ids_per_agency.get(agency_id, []))
 
     def shutdown(self):
         """ Stop running server and close any communication. """
