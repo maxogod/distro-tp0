@@ -107,6 +107,6 @@ class BetProtocol:
             chunk_size = 0
             try:
                 chunk_size = self._skt.send(view[bytes_sent:])
-            except (BrokenPipeError, ConnectionResetError):
+            except OSError:
                 raise ConnectionClosedError("Socket connection closed.")
             bytes_sent += chunk_size

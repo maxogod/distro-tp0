@@ -1,3 +1,4 @@
+import signal
 import socket
 import sys
 import logging
@@ -28,7 +29,7 @@ class Server:
         """ Main server logic loop. """
         self._running = True
 
-        while self._running:
+        while self._running and self.__are_agencies_remaining():
             try:
                 client_socket = self.__accept_new_connection()
             except OSError as e:
@@ -48,6 +49,9 @@ class Server:
             p.start()
             self._processes.append(p)
 
+        for p in self._processes:
+            p.join()
+
     def shutdown(self):
         """ Stop running server and close any communication. """
         self._running = False
@@ -56,9 +60,14 @@ class Server:
         for p in self._processes:
             if p.is_alive():
                 p.terminate()
-                p.join()
+            p.join()
 
     def __handle_agency_connection(self, agency_id, conn: BetProtocol):
+        """ Connection handler for each agency, to be run in a separate process. """
+        
+        # Graceful shutdown on SIGTERM
+        signal.signal(signal.SIGTERM, lambda _s, _f: conn.shutdown())
+
         while not conn.is_closed():
             try:
                 batch = conn.receive_bet_batch()
@@ -98,6 +107,9 @@ class Server:
             pass
 
         conn.shutdown()
+
+    def __are_agencies_remaining(self):
+        return len(self._processes) < self._agencies_amount
             
     def __accept_new_connection(self):
         """
