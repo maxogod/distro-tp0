@@ -1,4 +1,3 @@
-import signal
 import socket
 import sys
 import logging
@@ -20,6 +19,7 @@ class Server:
         # Multiprocessing
         self._bet_storage_lock = multiprocessing.Lock()
         self._lottery_start_barrier = multiprocessing.Barrier(agencies_amount)
+        self._shutdown_event = multiprocessing.Event()
         self._processes = []
 
     def __del__(self):
@@ -57,18 +57,14 @@ class Server:
         self._running = False
         self._server_socket.close()
 
+        self._shutdown_event.set()
         for p in self._processes:
-            if p.is_alive():
-                p.terminate()
             p.join()
 
     def __handle_agency_connection(self, agency_id, conn: BetProtocol):
         """ Connection handler for each agency, to be run in a separate process. """
-        
-        # Graceful shutdown on SIGTERM
-        signal.signal(signal.SIGTERM, lambda _s, _f: conn.shutdown())
 
-        while not conn.is_closed():
+        while not conn.is_closed() and not self._shutdown_event.is_set():
             try:
                 batch = conn.receive_bet_batch()
                 if not batch:
@@ -93,6 +89,9 @@ class Server:
         self._lottery_start_barrier.wait()
 
         if conn.is_closed():
+            return
+        elif self._shutdown_event.is_set():
+            conn.shutdown()
             return
 
         logging.info("action: sorteo | result: success")

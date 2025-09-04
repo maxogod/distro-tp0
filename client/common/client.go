@@ -50,6 +50,7 @@ func (c *Client) createClientProtocol() (betProtocol.BetProtocol, error) {
 			c.config.ID,
 			err,
 		)
+		return nil, err
 	}
 
 	// Goroutine for graceful shutdown after receiving shutdown signal
