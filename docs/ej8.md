@@ -16,8 +16,9 @@ luego leer colectivamente (es seguro, siempre y cuando no sea lecto-escritura) e
 
 Se utilizan dos mecanismos de sincronizacion a lo largo de este procedimiento:
 - Se utiliza un `multiprocessing.Lock` para poder ordenar el acceso de escritura al almacenamiento de apuestas.
-- Se utiliza un `multiprocessing.Event` que se utiliza como una **barrera**, ya que el ultimo proceso en terminar de recibir apuestas es el que
-dispara el evento y desbloquea a los demas procesos para poder comenzar el sorteo.
+- Se utiliza un `multiprocessing.Barrier` para lograr que todos los procesos una vez terminan de recibir
+apuestas por parte de su agencia, esperen a que el resto termine. Una vez que todos terminan de recibir, se desbloquean y
+se lleva a cabo el sorteo, es decir, pasan a obtener los dnis ganadores de su agencia y enviarlos.
 
 ### Como ejecutar
 
