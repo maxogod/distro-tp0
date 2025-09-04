@@ -11,9 +11,13 @@ class BetProtocol:
 
     def shutdown(self) -> None:
         """ Closes the connection with the client. """
-        if self._skt.fileno() != -1:
+        if not self.is_closed():
             self._skt.shutdown(socket.SHUT_RDWR)
             self._skt.close()
+
+    def is_closed(self):
+        """ Returns whether the connection is closed. """
+        return self._skt.fileno() == -1
 
     def receive_agency_id(self) -> int:
         """ Receives the agency ID from client and returns it. """

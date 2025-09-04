@@ -17,10 +17,8 @@ class Server:
         self._agencies_amount = agencies_amount
         
         # Multiprocessing
-        manager = multiprocessing.Manager()
-        self._agencies_finished = manager.dict()
         self._bet_storage_lock = multiprocessing.Lock()
-        self._lottery_start_event = multiprocessing.Event()
+        self._lottery_start_barrier = multiprocessing.Barrier(agencies_amount)
         self._processes = []
 
     def __del__(self):
@@ -61,7 +59,7 @@ class Server:
                 p.join()
 
     def __handle_agency_connection(self, agency_id, conn: BetProtocol):
-        while True:
+        while not conn.is_closed():
             try:
                 batch = conn.receive_bet_batch()
                 if not batch:
@@ -77,23 +75,20 @@ class Server:
                 logging.error(f"action: apuesta_recibida | result: fail | cantidad: {e.size_expected}")
             except ConnectionClosedError as e:
                 conn.shutdown()
-                self._agencies_finished[agency_id] = True
-                return
 
             # Make sure logs are written
             sys.stdout.flush()
             sys.stderr.flush()
 
-        self._agencies_finished[agency_id] = True
-        if len(self._agencies_finished) == self._agencies_amount:
-            # Last agency to finish, trigger lottery
-            self._lottery_start_event.set()
-        else:
-            self._lottery_start_event.wait()
+        # Wait for all agencies to finish sending bets
+        self._lottery_start_barrier.wait()
+
+        if conn.is_closed():
+            return
 
         logging.info("action: sorteo | result: success")
         winner_ids: list[int] = []
-        for bet in utils.load_bets(): # Safe read opearation
+        for bet in utils.load_bets(): # Safe multi-process read opearation
             if bet.agency == agency_id and utils.has_won(bet):
                 winner_ids.append(int(bet.document))
 
